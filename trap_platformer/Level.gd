@@ -36,6 +36,7 @@ func _ready():
 		rect.size = Vector2(24, 25)
 		shape.shape = rect
 		spike.position = s + Vector2(12, -12)
+		spike.monitoring = true
 
 		spike.add_child(shape)
 		add_child(spike)
