@@ -24,6 +24,12 @@ func _process(_delta):
 		message = "LEVEL COMPLETE! 🎉"
 		player.velocity = Vector2.ZERO
 		queue_redraw()
+func kill_player():
+	deaths += 1
+	$Player.global_position = Vector2(90, 430)
+	$Player.velocity = Vector2.ZERO
+	message = "OUCH! Try again..."
+	queue_redraw()
 
 func _draw():
 	draw_rect(Rect2(0, 0, 960, 540), Color("#18202b"))
