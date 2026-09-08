@@ -27,7 +27,25 @@ func _ready():
         body.position = p.position + p.size / 2.0
         body.add_child(shape)
         add_child(body)
+
+    for s in spikes:
+        var spike := Area2D.new()
+        var shape := CollisionShape2D.new()
+        var rect := RectangleShape2D.new()
+
+        rect.size = Vector2(24, 25)
+        shape.shape = rect
+        spike.position = s + Vector2(12, -12)
+
+        spike.add_child(shape)
+        add_child(spike)
+
+        spike.body_entered.connect(_on_spike_body_entered)
+
     queue_redraw()
+func _on_spike_body_entered(body):
+    if body.name == "Player":
+        get_parent().kill_player()
 
 func _draw():
     for p in platforms:
