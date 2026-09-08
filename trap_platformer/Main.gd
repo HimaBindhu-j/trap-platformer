@@ -19,16 +19,20 @@ func _process(_delta):
 		message = "OUCH! Try again..."
 		queue_redraw()
 
-	if player.global_position.x > 880 and not won:
-		won = true
-		message = "LEVEL COMPLETE! 🎉"
-		player.velocity = Vector2.ZERO
-		queue_redraw()
 func kill_player():
 	deaths += 1
 	$Player.global_position = Vector2(90, 430)
 	$Player.velocity = Vector2.ZERO
 	message = "OUCH! Try again..."
+	queue_redraw()
+
+func win_level():
+	if won:
+		return
+
+	won = true
+	message = "LEVEL COMPLETE! 🎉"
+	$Player.velocity = Vector2.ZERO
 	queue_redraw()
 
 func _draw():
