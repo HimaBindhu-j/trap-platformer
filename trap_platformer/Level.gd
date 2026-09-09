@@ -1,11 +1,12 @@
 extends Node2D
 
 var platforms = [
-	Rect2(20, 470, 180, 30),
-	Rect2(250, 420, 150, 30),
-	Rect2(460, 350, 150, 30),
-	Rect2(660, 430, 120, 30),
-	Rect2(805, 470, 135, 30)
+	Rect2(20, 470, 180, 30),   # Start
+	Rect2(250, 420, 140, 30),  # Platform 2
+	Rect2(440, 360, 120, 30),  # Platform 3
+	Rect2(610, 410, 110, 30),  # Platform 4
+	Rect2(760, 350, 120, 30),  # Platform 5
+	Rect2(805, 470, 135, 30)   # Exit platform
 ]
 
 var spikes = [
@@ -76,7 +77,7 @@ func _ready():
 	trap_rect.size = Vector2(28, 28)
 	trap_shape.shape = trap_rect
 
-	moving_trap.position = Vector2(720, moving_trap_start_y)
+	moving_trap.position = Vector2(700, moving_trap_start_y)
 	moving_trap.monitoring = true
 
 	moving_trap.add_child(trap_shape)
