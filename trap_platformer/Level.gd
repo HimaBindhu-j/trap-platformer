@@ -159,18 +159,26 @@ func _draw():
 			Color("#ff9f43")
 		)
 
-	# Draw exit
-	draw_rect(
-		Rect2(855, 420, 45, 50),
-		Color("#7ee787")
-	)
 
+	# Exit
+	draw_rect(
+		Rect2(850, 415, 55, 55),
+		Color("#7ee787"))
+	draw_rect(
+		Rect2(858, 423, 39, 47),
+		Color("#18202b")
+		)
 	draw_string(
 		ThemeDB.fallback_font,
-		Vector2(850, 405),
+		Vector2(856, 405),
 		"EXIT",
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
 		20,
 		Color("#7ee787")
-	)
+		)
+	draw_circle(
+		Vector2(877, 435),
+		8,
+		Color("#7ee787")
+		)
