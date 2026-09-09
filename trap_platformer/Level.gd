@@ -15,7 +15,16 @@ var spikes = [
 	Vector2(780, 430)
 ]
 
+# Moving trap
+var moving_trap: Area2D
+var moving_trap_start_y := 360.0
+var moving_trap_range := 60.0
+var moving_trap_speed := 2.0
+var moving_trap_direction := 1.0
+
+
 func _ready():
+	# Create platforms
 	for p in platforms:
 		var body := StaticBody2D.new()
 		var shape := CollisionShape2D.new()
@@ -28,6 +37,7 @@ func _ready():
 		body.add_child(shape)
 		add_child(body)
 
+	# Create spikes
 	for s in spikes:
 		var spike := Area2D.new()
 		var shape := CollisionShape2D.new()
@@ -43,7 +53,7 @@ func _ready():
 
 		spike.body_entered.connect(_on_spike_body_entered)
 
-	# Exit collision area
+	# Create exit collision area
 	var exit_area := Area2D.new()
 	var exit_shape := CollisionShape2D.new()
 	var exit_rect := RectangleShape2D.new()
@@ -57,10 +67,57 @@ func _ready():
 
 	exit_area.body_entered.connect(_on_exit_body_entered)
 
+	# Create moving trap
+	moving_trap = Area2D.new()
+
+	var trap_shape := CollisionShape2D.new()
+	var trap_rect := RectangleShape2D.new()
+
+	trap_rect.size = Vector2(28, 28)
+	trap_shape.shape = trap_rect
+
+	moving_trap.position = Vector2(720, moving_trap_start_y)
+	moving_trap.monitoring = true
+
+	moving_trap.add_child(trap_shape)
+	add_child(moving_trap)
+
+	moving_trap.body_entered.connect(_on_moving_trap_body_entered)
+
+	queue_redraw()
+
+
+func _process(delta):
+	if moving_trap == null:
+		return
+
+	# Move trap up and down
+	moving_trap.position.y += (
+		moving_trap_direction
+		* moving_trap_speed
+		* 60.0
+		* delta
+	)
+
+	# Move down until maximum position
+	if moving_trap.position.y >= moving_trap_start_y + moving_trap_range:
+		moving_trap.position.y = moving_trap_start_y + moving_trap_range
+		moving_trap_direction = -1.0
+
+	# Move up until starting position
+	elif moving_trap.position.y <= moving_trap_start_y:
+		moving_trap.position.y = moving_trap_start_y
+		moving_trap_direction = 1.0
+
 	queue_redraw()
 
 
 func _on_spike_body_entered(body):
+	if body.name == "Player":
+		get_parent().kill_player()
+
+
+func _on_moving_trap_body_entered(body):
 	if body.name == "Player":
 		get_parent().kill_player()
 
@@ -71,6 +128,7 @@ func _on_exit_body_entered(body):
 
 
 func _draw():
+	# Draw platforms
 	for p in platforms:
 		draw_rect(p, Color("#52606d"))
 		draw_line(
@@ -80,6 +138,7 @@ func _draw():
 			3
 		)
 
+	# Draw spikes
 	for s in spikes:
 		var pts = PackedVector2Array([
 			s + Vector2(0, 0),
@@ -89,7 +148,17 @@ func _draw():
 
 		draw_colored_polygon(pts, Color("#ff4d6d"))
 
-	# Exit
+	# Draw moving trap
+	if moving_trap != null:
+		draw_rect(
+			Rect2(
+				moving_trap.position - Vector2(14, 14),
+				Vector2(28, 28)
+			),
+			Color("#ff9f43")
+		)
+
+	# Draw exit
 	draw_rect(
 		Rect2(855, 420, 45, 50),
 		Color("#7ee787")
