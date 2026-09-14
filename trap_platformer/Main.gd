@@ -46,21 +46,20 @@ func kill_player():
 
 
 func win_level():
-	# Never allow a second win during transition
 	if won or game_over or changing_level:
 		return
 
 	if current_level == 1:
 		changing_level = true
-
-		# Immediately move player away from Level 1 exit
-		$Player.global_position = Vector2(90, 430)
-		$Player.velocity = Vector2.ZERO
-
 		message = "LEVEL 2!"
 		queue_redraw()
-
 		call_deferred("_load_level_2")
+
+	elif current_level == 2:
+		changing_level = true
+		message = "LEVEL 3!"
+		queue_redraw()
+		call_deferred("_load_level_3")
 
 	else:
 		won = true
@@ -90,6 +89,39 @@ func _load_level_2():
 	current_level = 2
 
 	message = "LEVEL 2!"
+
+	queue_redraw()
+
+	# Keep transition locked briefly
+	await get_tree().create_timer(0.2).timeout
+
+	changing_level = false
+
+	
+func _load_level_3():
+	# Move player away from the Level 2 exit
+	$Player.global_position = Vector2(90, 430)
+	$Player.velocity = Vector2.ZERO
+
+	# Remove Level 2
+	var old_level = $Level
+	old_level.queue_free()
+
+	# Wait until Level 2 is removed
+	await get_tree().process_frame
+
+	# Create Level 3
+	var new_level := Node2D.new()
+	new_level.name = "Level"
+	new_level.set_script(load("res://Level3.gd"))
+	add_child(new_level)
+
+	# Start Level 3 at starting position
+	$Player.global_position = Vector2(90, 430)
+	$Player.velocity = Vector2.ZERO
+
+	current_level = 3
+	message = "LEVEL 3!"
 
 	queue_redraw()
 
