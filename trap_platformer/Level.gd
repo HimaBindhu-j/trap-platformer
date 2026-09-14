@@ -1,22 +1,24 @@
 extends Node2D
 
+# LEVEL 1 PLATFORMS
 var platforms = [
-	Rect2(20, 470, 180, 30),   # Start
-	Rect2(250, 420, 140, 30),  # Platform 2
-	Rect2(440, 360, 120, 30),  # Platform 3
-	Rect2(610, 410, 110, 30),  # Platform 4
-	Rect2(760, 350, 120, 30),  # Platform 5
-	Rect2(805, 470, 135, 30)   # Exit platform
+	Rect2(20, 470, 180, 30),
+	Rect2(250, 420, 140, 30),
+	Rect2(440, 360, 120, 30),
+	Rect2(610, 410, 110, 30),
+	Rect2(760, 350, 120, 30),
+	Rect2(805, 470, 135, 30)
 ]
 
+# LEVEL 1 SPIKES
 var spikes = [
 	Vector2(205, 470),
-	Vector2(420, 420),
-	Vector2(610, 350),
-	Vector2(780, 430)
+	Vector2(395, 420),
+	Vector2(565, 360),
+	Vector2(730, 470)
 ]
 
-# Moving trap
+# Vertical moving trap
 var moving_trap: Area2D
 var moving_trap_start_y := 360.0
 var moving_trap_range := 60.0
@@ -46,6 +48,7 @@ func _ready():
 
 		rect.size = Vector2(24, 25)
 		shape.shape = rect
+
 		spike.position = s + Vector2(12, -12)
 		spike.monitoring = true
 
@@ -54,7 +57,7 @@ func _ready():
 
 		spike.body_entered.connect(_on_spike_body_entered)
 
-	# Create exit collision area
+	# Create exit
 	var exit_area := Area2D.new()
 	var exit_shape := CollisionShape2D.new()
 	var exit_rect := RectangleShape2D.new()
@@ -63,12 +66,13 @@ func _ready():
 	exit_shape.shape = exit_rect
 
 	exit_area.position = Vector2(877.5, 445)
+
 	exit_area.add_child(exit_shape)
 	add_child(exit_area)
 
 	exit_area.body_entered.connect(_on_exit_body_entered)
 
-	# Create moving trap
+	# Create vertical moving trap
 	moving_trap = Area2D.new()
 
 	var trap_shape := CollisionShape2D.new()
@@ -100,12 +104,12 @@ func _process(delta):
 		* delta
 	)
 
-	# Move down until maximum position
+	# Bottom limit
 	if moving_trap.position.y >= moving_trap_start_y + moving_trap_range:
 		moving_trap.position.y = moving_trap_start_y + moving_trap_range
 		moving_trap_direction = -1.0
 
-	# Move up until starting position
+	# Top limit
 	elif moving_trap.position.y <= moving_trap_start_y:
 		moving_trap.position.y = moving_trap_start_y
 		moving_trap_direction = 1.0
@@ -131,7 +135,11 @@ func _on_exit_body_entered(body):
 func _draw():
 	# Draw platforms
 	for p in platforms:
-		draw_rect(p, Color("#52606d"))
+		draw_rect(
+			p,
+			Color("#52606d")
+		)
+
 		draw_line(
 			p.position,
 			p.position + Vector2(p.size.x, 0),
@@ -147,9 +155,12 @@ func _draw():
 			s + Vector2(24, 0)
 		])
 
-		draw_colored_polygon(pts, Color("#ff4d6d"))
+		draw_colored_polygon(
+			pts,
+			Color("#ff4d6d")
+		)
 
-	# Draw moving trap
+	# Draw vertical moving trap
 	if moving_trap != null:
 		draw_rect(
 			Rect2(
@@ -159,15 +170,17 @@ func _draw():
 			Color("#ff9f43")
 		)
 
-
-	# Exit
+	# Draw exit
 	draw_rect(
 		Rect2(850, 415, 55, 55),
-		Color("#7ee787"))
+		Color("#7ee787")
+	)
+
 	draw_rect(
 		Rect2(858, 423, 39, 47),
 		Color("#18202b")
-		)
+	)
+
 	draw_string(
 		ThemeDB.fallback_font,
 		Vector2(856, 405),
@@ -176,9 +189,10 @@ func _draw():
 		-1,
 		20,
 		Color("#7ee787")
-		)
+	)
+
 	draw_circle(
 		Vector2(877, 435),
 		8,
 		Color("#7ee787")
-		)
+	)

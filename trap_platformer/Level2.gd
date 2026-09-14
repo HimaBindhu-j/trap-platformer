@@ -17,6 +17,13 @@ var spikes = [
 	Vector2(795, 470)
 ]
 
+# Horizontal moving trap
+var moving_trap: Area2D
+var moving_trap_start_x := 610.0
+var moving_trap_range := 100.0
+var moving_trap_speed := 2.0
+var moving_trap_direction := 1.0
+
 var exit_area: Area2D
 var exit_enabled := false
 
@@ -43,7 +50,6 @@ func _ready():
 
 		rect.size = Vector2(24, 25)
 		shape.shape = rect
-
 		spike.position = s + Vector2(12, -12)
 		spike.monitoring = true
 
@@ -51,6 +57,23 @@ func _ready():
 		add_child(spike)
 
 		spike.body_entered.connect(_on_spike_body_entered)
+
+	# Create horizontal moving trap
+	moving_trap = Area2D.new()
+
+	var trap_shape := CollisionShape2D.new()
+	var trap_rect := RectangleShape2D.new()
+
+	trap_rect.size = Vector2(30, 30)
+	trap_shape.shape = trap_rect
+
+	moving_trap.position = Vector2(moving_trap_start_x, 300)
+	moving_trap.monitoring = true
+
+	moving_trap.add_child(trap_shape)
+	add_child(moving_trap)
+
+	moving_trap.body_entered.connect(_on_moving_trap_body_entered)
 
 	# Create exit
 	exit_area = Area2D.new()
@@ -62,8 +85,6 @@ func _ready():
 	exit_shape.shape = exit_rect
 
 	exit_area.position = Vector2(877.5, 445)
-
-	# Exit is OFF during level loading
 	exit_area.monitoring = false
 
 	exit_area.add_child(exit_shape)
@@ -73,12 +94,35 @@ func _ready():
 
 	queue_redraw()
 
-	# Enable exit only after transition is finished
 	call_deferred("_enable_exit")
 
 
+func _process(delta):
+	if moving_trap == null:
+		return
+
+	# Move trap left and right
+	moving_trap.position.x += (
+		moving_trap_direction
+		* moving_trap_speed
+		* 60.0
+		* delta
+	)
+
+	# Right limit
+	if moving_trap.position.x >= moving_trap_start_x + moving_trap_range:
+		moving_trap.position.x = moving_trap_start_x + moving_trap_range
+		moving_trap_direction = -1.0
+
+	# Left limit
+	elif moving_trap.position.x <= moving_trap_start_x:
+		moving_trap.position.x = moving_trap_start_x
+		moving_trap_direction = 1.0
+
+	queue_redraw()
+
+
 func _enable_exit():
-	# Wait a little longer so player is safely inside Level 2
 	await get_tree().create_timer(0.3).timeout
 
 	exit_enabled = true
@@ -88,6 +132,11 @@ func _enable_exit():
 
 
 func _on_spike_body_entered(body):
+	if body.name == "Player":
+		get_parent().kill_player()
+
+
+func _on_moving_trap_body_entered(body):
 	if body.name == "Player":
 		get_parent().kill_player()
 
@@ -123,6 +172,16 @@ func _draw():
 		draw_colored_polygon(
 			pts,
 			Color("#ff4d6d")
+		)
+
+	# Horizontal moving trap
+	if moving_trap != null:
+		draw_rect(
+			Rect2(
+				moving_trap.position - Vector2(15, 15),
+				Vector2(30, 30)
+			),
+			Color("#ff9f43")
 		)
 
 	# Exit
