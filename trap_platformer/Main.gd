@@ -12,6 +12,7 @@ var message := ""
 var current_level := 1
 var changing_level := false
 
+
 # =========================
 # LEVEL STATS
 # =========================
@@ -23,6 +24,10 @@ var level_start_time := 0
 var last_safe_position := Vector2(90, 430)
 
 
+# =========================
+# READY
+# =========================
+
 func _ready():
 
 	level_start_time = Time.get_ticks_msec()
@@ -32,7 +37,15 @@ func _ready():
 	queue_redraw()
 
 
+# =========================
+# PROCESS
+# =========================
+
 func _process(_delta):
+
+	# -------------------------
+	# Restart
+	# -------------------------
 
 	if Input.is_action_just_pressed("restart"):
 
@@ -40,6 +53,55 @@ func _process(_delta):
 
 		return
 
+
+	# =========================
+	# DEVELOPER LEVEL TESTING
+	# =========================
+
+	if Input.is_key_pressed(KEY_1):
+		test_level(1)
+		return
+
+	if Input.is_key_pressed(KEY_2):
+		test_level(2)
+		return
+
+	if Input.is_key_pressed(KEY_3):
+		test_level(3)
+		return
+
+	if Input.is_key_pressed(KEY_4):
+		test_level(4)
+		return
+
+	if Input.is_key_pressed(KEY_5):
+		test_level(5)
+		return
+
+	if Input.is_key_pressed(KEY_6):
+		test_level(6)
+		return
+
+	if Input.is_key_pressed(KEY_7):
+		test_level(7)
+		return
+
+	if Input.is_key_pressed(KEY_8):
+		test_level(8)
+		return
+
+	if Input.is_key_pressed(KEY_9):
+		test_level(9)
+		return
+
+	if Input.is_key_pressed(KEY_0):
+		test_level(10)
+		return
+
+
+	# -------------------------
+	# Stop after game over / win
+	# -------------------------
 
 	if game_over or won:
 
@@ -49,15 +111,18 @@ func _process(_delta):
 	var player = $Player
 
 
-	# Save player's latest safe position
-	# when standing on a platform.
+	# -------------------------
+	# Save latest safe position
+	# -------------------------
 
 	if player.is_on_floor():
 
 		last_safe_position = player.global_position
 
 
-	# Fall death
+	# -------------------------
+	# Player falls
+	# -------------------------
 
 	if player.global_position.y > 650:
 
@@ -81,12 +146,15 @@ func kill_player():
 	lives -= 1
 
 
-	# 3 lives finished
+	# -------------------------
+	# All lives lost
+	# -------------------------
+
 	if lives <= 0:
 
 		game_over = true
 
-		message = "LEVEL 1 FAILED!"
+		message = "LEVEL %d FAILED!" % current_level
 
 		$Player.velocity = Vector2.ZERO
 
@@ -95,7 +163,10 @@ func kill_player():
 		return
 
 
-	# Respawn at last safe position
+	# -------------------------
+	# Respawn
+	# -------------------------
+
 	$Player.global_position = last_safe_position
 
 	$Player.velocity = Vector2.ZERO
@@ -132,41 +203,41 @@ func win_level():
 	changing_level = true
 
 
-	var elapsed_seconds := (
-		Time.get_ticks_msec()
-		- level_start_time
-	) / 1000.0
-
-
-	var achievement := 1
-
-
-	if elapsed_seconds < 35:
-
-		achievement = 3
-
-	elif elapsed_seconds < 55:
-
-		achievement = 2
-
-
-	message = "LEVEL COMPLETE! ⭐ x%d" % achievement
-
-	queue_redraw()
-
-
-	# For now Level 1 completion
-	# will lead to Level 2.
+	# -------------------------
+	# LEVEL 1 → LEVEL 2
+	# -------------------------
 
 	if current_level == 1:
 
-		current_level = 2
+		message = "LEVEL 2!"
+
+		queue_redraw()
 
 		call_deferred("_load_level_2")
+
+
+	# -------------------------
+	# LEVEL 2 → LEVEL 3
+	# -------------------------
+
+	elif current_level == 2:
+
+		message = "LEVEL 3!"
+
+		queue_redraw()
+
+		call_deferred("_load_level_3")
+
+
+	# -------------------------
+	# LEVEL 3 → GAME COMPLETE
+	# -------------------------
 
 	else:
 
 		won = true
+
+		message = "GAME COMPLETE! 🎉"
 
 		$Player.velocity = Vector2.ZERO
 
@@ -181,25 +252,23 @@ func win_level():
 
 func _load_level_2():
 
+	# Reset player
 	$Player.global_position = Vector2(90, 430)
 
 	$Player.velocity = Vector2.ZERO
 
 
-	# Remove old level
-
+	# Remove current level
 	var old_level = $Level
 
 	old_level.queue_free()
 
 
 	# Wait one frame
-
 	await get_tree().process_frame
 
 
 	# Create Level 2
-
 	var new_level := Node2D.new()
 
 	new_level.name = "Level"
@@ -212,6 +281,7 @@ func _load_level_2():
 
 
 	# Reset Level 2 stats
+	current_level = 2
 
 	lives = 3
 
@@ -223,9 +293,172 @@ func _load_level_2():
 
 	message = "LEVEL 2!"
 
+	queue_redraw()
+
+
+	# Small transition lock
+	await get_tree().create_timer(0.2).timeout
+
 	changing_level = false
 
+
+# =========================
+# LOAD LEVEL 3
+# =========================
+
+func _load_level_3():
+
+	# Reset player
+	$Player.global_position = Vector2(90, 430)
+
+	$Player.velocity = Vector2.ZERO
+
+
+	# Remove current level
+	var old_level = $Level
+
+	old_level.queue_free()
+
+
+	# Wait one frame
+	await get_tree().process_frame
+
+
+	# Create Level 3
+	var new_level := Node2D.new()
+
+	new_level.name = "Level"
+
+	new_level.set_script(
+		load("res://Level3.gd")
+	)
+
+	add_child(new_level)
+
+
+	# Reset Level 3 stats
+	current_level = 3
+
+	lives = 3
+
+	diamonds_collected = 0
+
+	level_start_time = Time.get_ticks_msec()
+
+	last_safe_position = Vector2(90, 430)
+
+	$Player.global_position = Vector2(90, 430)
+
+	$Player.velocity = Vector2.ZERO
+
+	message = "LEVEL 3!"
+
 	queue_redraw()
+
+
+	# Small transition lock
+	await get_tree().create_timer(0.2).timeout
+
+	changing_level = false
+
+
+# =========================
+# DEVELOPER LEVEL TESTING
+# =========================
+
+func test_level(level_number: int):
+
+	if changing_level:
+
+		return
+
+
+	changing_level = true
+
+	current_level = level_number
+
+	lives = 3
+
+	diamonds_collected = 0
+
+	game_over = false
+
+	won = false
+
+	message = "TESTING LEVEL %d" % level_number
+
+
+	# -------------------------
+	# Remove current level
+	# -------------------------
+
+	var old_level = $Level
+
+	old_level.queue_free()
+
+
+	# Wait one frame
+	await get_tree().process_frame
+
+
+	# -------------------------
+	# Create requested level
+	# -------------------------
+
+	var new_level := Node2D.new()
+
+	new_level.name = "Level"
+
+
+	var level_path = "res://Level%d.gd" % level_number
+
+
+	# Level 1 uses Level.gd
+	if level_number == 1:
+
+		level_path = "res://Level.gd"
+
+
+	var level_script = load(level_path)
+
+
+	# Safety check
+	if level_script == null:
+
+		message = "Level %d not created yet!" % level_number
+
+		changing_level = false
+
+		queue_redraw()
+
+		return
+
+
+	new_level.set_script(level_script)
+
+	add_child(new_level)
+
+
+	# -------------------------
+	# Reset player
+	# -------------------------
+
+	$Player.global_position = Vector2(90, 430)
+
+	$Player.velocity = Vector2.ZERO
+
+	last_safe_position = $Player.global_position
+
+	level_start_time = Time.get_ticks_msec()
+
+
+	queue_redraw()
+
+
+	# Small transition lock
+	await get_tree().create_timer(0.2).timeout
+
+	changing_level = false
 
 
 # =========================
@@ -234,7 +467,9 @@ func _load_level_2():
 
 func _draw():
 
+	# -------------------------
 	# Background
+	# -------------------------
 
 	draw_rect(
 		Rect2(0, 0, 960, 540),
@@ -242,7 +477,9 @@ func _draw():
 	)
 
 
+	# -------------------------
 	# Game title
+	# -------------------------
 
 	draw_string(
 		ThemeDB.fallback_font,
@@ -255,7 +492,9 @@ func _draw():
 	)
 
 
+	# -------------------------
 	# Controls
+	# -------------------------
 
 	draw_string(
 		ThemeDB.fallback_font,
@@ -268,7 +507,9 @@ func _draw():
 	)
 
 
+	# -------------------------
 	# Level
+	# -------------------------
 
 	draw_string(
 		ThemeDB.fallback_font,
@@ -281,7 +522,9 @@ func _draw():
 	)
 
 
+	# -------------------------
 	# Lives
+	# -------------------------
 
 	draw_string(
 		ThemeDB.fallback_font,
@@ -294,7 +537,9 @@ func _draw():
 	)
 
 
+	# -------------------------
 	# Diamonds
+	# -------------------------
 
 	draw_string(
 		ThemeDB.fallback_font,
@@ -307,7 +552,9 @@ func _draw():
 	)
 
 
+	# -------------------------
 	# Message
+	# -------------------------
 
 	if message != "":
 
@@ -322,7 +569,9 @@ func _draw():
 		)
 
 
-	# Game over
+	# -------------------------
+	# Level Failed
+	# -------------------------
 
 	if game_over:
 
@@ -354,7 +603,7 @@ func _draw():
 		draw_string(
 			ThemeDB.fallback_font,
 			Vector2(330, 310),
-			"Press R to restart Level 1",
+			"Press R to restart Level %d" % current_level,
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
 			18,
@@ -362,7 +611,9 @@ func _draw():
 		)
 
 
-	# Game complete
+	# -------------------------
+	# Game Complete
+	# -------------------------
 
 	if won:
 

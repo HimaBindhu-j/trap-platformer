@@ -1,181 +1,200 @@
 extends Node2D
 
-# ==================================================
-# LEVEL 3 - THE FALLING CEILING
-# ==================================================
-
-# -------------------------
-# PLATFORM LAYOUT
-# -------------------------
+# =========================================================
+# LEVEL 3 - THE DEATH CORRIDOR
+# =========================================================
 
 var platforms = [
-	Rect2(20, 470, 150, 30),
-	Rect2(210, 420, 105, 30),
-	Rect2(350, 470, 100, 30),
-	Rect2(485, 390, 105, 30),
-	Rect2(625, 470, 100, 30),
-	Rect2(755, 410, 95, 30),
-	Rect2(845, 470, 95, 30)
+	Rect2(20, 470, 130, 30),
+	Rect2(190, 420, 90, 30),
+	Rect2(330, 360, 85, 30),
+	Rect2(465, 430, 80, 30),
+	Rect2(590, 350, 85, 30),
+	Rect2(720, 420, 75, 30),
+	Rect2(835, 350, 105, 30)
 ]
-
-
-# -------------------------
-# SPIKES
-# -------------------------
 
 var spikes = [
-	Vector2(175, 470),
-	Vector2(315, 420),
-	Vector2(450, 470),
-	Vector2(590, 390),
-	Vector2(725, 470),
-	Vector2(815, 410)
+	Vector2(150, 470),
+	Vector2(280, 420),
+	Vector2(415, 360),
+	Vector2(545, 430),
+	Vector2(675, 350),
+	Vector2(795, 420)
 ]
 
-
-# ==================================================
-# FALLING CEILING BLOCKS
-# ==================================================
+# =========================================================
+# FALLING BLOCKS
+# =========================================================
 
 var falling_blocks: Array[Area2D] = []
 
-var falling_block_data = [
-	{
-		"start": Vector2(270, 130),
-		"bottom": 390.0,
-		"speed": 5.0
-	},
-	{
-		"start": Vector2(515, 110),
-		"bottom": 360.0,
-		"speed": 6.0
-	},
-	{
-		"start": Vector2(680, 140),
-		"bottom": 430.0,
-		"speed": 5.5
-	},
-	{
-		"start": Vector2(850, 120),
-		"bottom": 390.0,
-		"speed": 6.5
-	}
+var falling_data = [
+	{"start": Vector2(235, 170), "bottom": 385.0, "speed": 330.0},
+	{"start": Vector2(505, 120), "bottom": 395.0, "speed": 390.0},
+	{"start": Vector2(745, 100), "bottom": 395.0, "speed": 450.0}
 ]
 
+var falling_active: Array[bool] = []
 
-# ==================================================
+# =========================================================
+# MOVING TRAPS
+# =========================================================
+
+var moving_traps: Array[Area2D] = []
+
+var moving_trap_starts = [
+	Vector2(380, 315),
+	Vector2(640, 300)
+]
+
+var moving_trap_ranges = [
+	70.0,
+	90.0
+]
+
+var moving_trap_speeds = [
+	175.0,
+	210.0
+]
+
+var moving_trap_directions = [
+	1.0,
+	1.0
+]
+
+# =========================================================
 # DIAMONDS
-# ==================================================
+# =========================================================
 
 var diamonds = [
-	Vector2(260, 375),
-	Vector2(535, 345),
-	Vector2(795, 365)
+	Vector2(235, 375),
+	Vector2(600, 305),
+	Vector2(850, 305)
 ]
 
-
-# ==================================================
+# =========================================================
 # EXIT
-# ==================================================
+# =========================================================
 
 var exit_area: Area2D
 var exit_enabled := false
 
 
-# ==================================================
-# READY
-# ==================================================
-
 func _ready():
 
-	# -------------------------
-	# Create platforms
-	# -------------------------
+	# =====================================================
+	# PLATFORMS
+	# =====================================================
 
 	for p in platforms:
 
 		var body := StaticBody2D.new()
-		var shape := CollisionShape2D.new()
-		var rect := RectangleShape2D.new()
 
-		rect.size = p.size
-		shape.shape = rect
+		var collision := CollisionShape2D.new()
+		var shape := RectangleShape2D.new()
+
+		shape.size = p.size
+		collision.shape = shape
 
 		body.position = p.position + p.size / 2.0
 
-		body.add_child(shape)
+		body.add_child(collision)
 		add_child(body)
 
 
-	# -------------------------
-	# Create spikes
-	# -------------------------
+	# =====================================================
+	# SPIKES
+	# =====================================================
 
 	for s in spikes:
 
 		var spike := Area2D.new()
-		var shape := CollisionShape2D.new()
-		var rect := RectangleShape2D.new()
 
-		rect.size = Vector2(24, 25)
-		shape.shape = rect
+		var collision := CollisionShape2D.new()
+		var shape := RectangleShape2D.new()
+
+		shape.size = Vector2(24, 25)
+		collision.shape = shape
 
 		spike.position = s + Vector2(12, -12)
 		spike.monitoring = true
 
-		spike.add_child(shape)
+		spike.add_child(collision)
 		add_child(spike)
 
-		spike.body_entered.connect(
-			_on_spike_body_entered
-		)
+		spike.body_entered.connect(_on_spike_body_entered)
 
 
-	# -------------------------
-	# Create falling blocks
-	# -------------------------
+	# =====================================================
+	# FALLING BLOCKS
+	# =====================================================
 
-	for data in falling_block_data:
+	for i in range(falling_data.size()):
 
 		var block := Area2D.new()
 
-		var shape := CollisionShape2D.new()
-		var rect := RectangleShape2D.new()
+		var collision := CollisionShape2D.new()
+		var shape := RectangleShape2D.new()
 
-		rect.size = Vector2(38, 38)
-		shape.shape = rect
+		shape.size = Vector2(42, 42)
+		collision.shape = shape
 
-		block.position = data["start"]
+		block.position = falling_data[i]["start"]
 		block.monitoring = true
 
-		block.add_child(shape)
+		block.add_child(collision)
 		add_child(block)
 
-		block.body_entered.connect(
-			_on_falling_block_body_entered
-		)
+		block.body_entered.connect(_on_falling_block_body_entered)
 
 		falling_blocks.append(block)
+		falling_active.append(false)
 
 
-	# -------------------------
-	# Create diamonds
-	# -------------------------
+	# =====================================================
+	# MOVING TRAPS
+	# =====================================================
 
-	for d in diamonds:
+	for i in range(moving_trap_starts.size()):
+
+		var trap := Area2D.new()
+
+		var collision := CollisionShape2D.new()
+		var shape := RectangleShape2D.new()
+
+		shape.size = Vector2(30, 30)
+		collision.shape = shape
+
+		trap.position = moving_trap_starts[i]
+		trap.monitoring = true
+
+		trap.add_child(collision)
+		add_child(trap)
+
+		trap.body_entered.connect(_on_moving_trap_body_entered)
+
+		moving_traps.append(trap)
+
+
+	# =====================================================
+	# DIAMONDS
+	# =====================================================
+
+	for d in diamonds.duplicate():
 
 		var diamond := Area2D.new()
 
-		var diamond_shape := CollisionShape2D.new()
-		var diamond_rect := RectangleShape2D.new()
+		var collision := CollisionShape2D.new()
+		var shape := CircleShape2D.new()
 
-		diamond_rect.size = Vector2(22, 22)
-		diamond_shape.shape = diamond_rect
+		shape.radius = 10
+		collision.shape = shape
 
 		diamond.position = d
 		diamond.monitoring = true
 
-		diamond.add_child(diamond_shape)
+		diamond.add_child(collision)
 		add_child(diamond)
 
 		diamond.body_entered.connect(
@@ -183,67 +202,120 @@ func _ready():
 		)
 
 
-	# -------------------------
-	# Create exit
-	# -------------------------
+	# =====================================================
+	# EXIT
+	# =====================================================
 
 	exit_area = Area2D.new()
 
-	var exit_shape := CollisionShape2D.new()
-	var exit_rect := RectangleShape2D.new()
+	var exit_collision := CollisionShape2D.new()
+	var exit_shape := RectangleShape2D.new()
 
-	exit_rect.size = Vector2(45, 50)
-	exit_shape.shape = exit_rect
+	exit_shape.size = Vector2(45, 50)
+	exit_collision.shape = exit_shape
 
-	exit_area.position = Vector2(877, 445)
+	# EXIT IS NOW ON THE FINAL PLATFORM
+	exit_area.position = Vector2(877, 325)
 
-	# Prevent accidental instant exit
 	exit_area.monitoring = false
 
-	exit_area.add_child(exit_shape)
+	exit_area.add_child(exit_collision)
 	add_child(exit_area)
 
-	exit_area.body_entered.connect(
-		_on_exit_body_entered
-	)
-
+	exit_area.body_entered.connect(_on_exit_body_entered)
 
 	queue_redraw()
 
 	call_deferred("_enable_exit")
 
 
-# ==================================================
-# PROCESS
-# ==================================================
-
 func _process(delta):
 
-	# -------------------------
-	# Move falling blocks
-	# -------------------------
+	# =====================================================
+	# FALLING BLOCK MOVEMENT
+	# =====================================================
 
 	for i in range(falling_blocks.size()):
 
 		var block = falling_blocks[i]
-		var data = falling_block_data[i]
 
-		block.position.y += (
-			data["speed"] * 60.0 * delta
+		if not is_instance_valid(block):
+			continue
+
+		if not falling_active[i]:
+			continue
+
+		block.position.y += falling_data[i]["speed"] * delta
+
+		if block.position.y >= falling_data[i]["bottom"]:
+
+			block.position.y = falling_data[i]["bottom"]
+			falling_active[i] = false
+
+
+	# =====================================================
+	# ACTIVATE FALLING BLOCK WHEN PLAYER IS NEAR
+	# =====================================================
+
+	var player = get_parent().get_node("Player")
+
+	if is_instance_valid(player):
+
+		for i in range(falling_blocks.size()):
+
+			if falling_active[i]:
+				continue
+
+			var block = falling_blocks[i]
+
+			var distance = abs(
+				player.global_position.x -
+				block.global_position.x
+			)
+
+			if distance < 80.0:
+				falling_active[i] = true
+
+
+	# =====================================================
+	# MOVING TRAPS
+	# =====================================================
+
+	for i in range(moving_traps.size()):
+
+		var trap = moving_traps[i]
+
+		if not is_instance_valid(trap):
+			continue
+
+		trap.position.x += (
+			moving_trap_speeds[i] *
+			moving_trap_directions[i] *
+			delta
 		)
 
-		# Reset block to ceiling
-		if block.position.y >= data["bottom"]:
+		var start_x = moving_trap_starts[i].x
 
-			block.position.y = data["start"].y
+		var min_x = start_x
+		var max_x = start_x + moving_trap_ranges[i]
+
+		if trap.position.x >= max_x:
+
+			trap.position.x = max_x
+			moving_trap_directions[i] = -1.0
+
+		elif trap.position.x <= min_x:
+
+			trap.position.x = min_x
+			moving_trap_directions[i] = 1.0
 
 
 	queue_redraw()
 
 
-# ==================================================
-# EXIT ACTIVATION
-# ==================================================
+# =========================================================
+# ENABLE EXIT
+# =========================================================
 
 func _enable_exit():
 
@@ -252,35 +324,42 @@ func _enable_exit():
 	exit_enabled = true
 
 	if is_instance_valid(exit_area):
-
 		exit_area.monitoring = true
 
 
-# ==================================================
-# SPIKE COLLISION
-# ==================================================
+# =========================================================
+# SPIKE HIT
+# =========================================================
 
 func _on_spike_body_entered(body):
 
 	if body.name == "Player":
-
 		get_parent().kill_player()
 
 
-# ==================================================
-# FALLING BLOCK COLLISION
-# ==================================================
+# =========================================================
+# FALLING BLOCK HIT
+# =========================================================
 
 func _on_falling_block_body_entered(body):
 
 	if body.name == "Player":
-
 		get_parent().kill_player()
 
 
-# ==================================================
-# DIAMOND COLLECTION
-# ==================================================
+# =========================================================
+# MOVING TRAP HIT
+# =========================================================
+
+func _on_moving_trap_body_entered(body):
+
+	if body.name == "Player":
+		get_parent().kill_player()
+
+
+# =========================================================
+# DIAMOND COLLECT
+# =========================================================
 
 func _on_diamond_body_entered(body, diamond):
 
@@ -297,9 +376,9 @@ func _on_diamond_body_entered(body, diamond):
 		queue_redraw()
 
 
-# ==================================================
+# =========================================================
 # EXIT
-# ==================================================
+# =========================================================
 
 func _on_exit_body_entered(body):
 
@@ -308,15 +387,15 @@ func _on_exit_body_entered(body):
 		get_parent().win_level()
 
 
-# ==================================================
-# DRAW
-# ==================================================
+# =========================================================
+# DRAW LEVEL
+# =========================================================
 
 func _draw():
 
-	# -------------------------
-	# Platforms
-	# -------------------------
+	# =====================================================
+	# PLATFORMS
+	# =====================================================
 
 	for p in platforms:
 
@@ -333,14 +412,14 @@ func _draw():
 		)
 
 
-	# -------------------------
-	# Spikes
-	# -------------------------
+	# =====================================================
+	# SPIKES
+	# =====================================================
 
 	for s in spikes:
 
 		var points = PackedVector2Array([
-			s + Vector2(0, 0),
+			s,
 			s + Vector2(12, -25),
 			s + Vector2(24, 0)
 		])
@@ -351,41 +430,54 @@ func _draw():
 		)
 
 
-	# -------------------------
-	# Falling ceiling blocks
-	# -------------------------
+	# =====================================================
+	# FALLING BLOCKS
+	# =====================================================
 
 	for block in falling_blocks:
 
-		if block != null:
+		if is_instance_valid(block):
 
 			draw_rect(
 				Rect2(
-					block.position - Vector2(19, 19),
-					Vector2(38, 38)
+					block.position - Vector2(21, 21),
+					Vector2(42, 42)
+				),
+				Color("#c44569")
+			)
+
+			draw_line(
+				block.position - Vector2(15, 15),
+				block.position + Vector2(15, 15),
+				Color("#ff9f43"),
+				3
+			)
+
+
+	# =====================================================
+	# MOVING TRAPS
+	# =====================================================
+
+	for trap in moving_traps:
+
+		if is_instance_valid(trap):
+
+			draw_rect(
+				Rect2(
+					trap.position - Vector2(15, 15),
+					Vector2(30, 30)
 				),
 				Color("#ff9f43")
 			)
 
-			# Warning mark
-			draw_string(
-				ThemeDB.fallback_font,
-				block.position + Vector2(-7, 7),
-				"!",
-				HORIZONTAL_ALIGNMENT_LEFT,
-				-1,
-				22,
-				Color("#18202b")
-			)
 
-
-	# -------------------------
-	# Diamonds
-	# -------------------------
+	# =====================================================
+	# DIAMONDS
+	# =====================================================
 
 	for d in diamonds:
 
-		var points = PackedVector2Array([
+		var diamond_points = PackedVector2Array([
 			d + Vector2(0, -12),
 			d + Vector2(10, 0),
 			d + Vector2(0, 12),
@@ -393,28 +485,28 @@ func _draw():
 		])
 
 		draw_colored_polygon(
-			points,
+			diamond_points,
 			Color("#66d9ff")
 		)
 
 
-	# -------------------------
-	# Exit
-	# -------------------------
+	# =====================================================
+	# EXIT - ON FINAL PLATFORM
+	# =====================================================
 
 	draw_rect(
-		Rect2(850, 415, 55, 55),
+		Rect2(860, 295, 55, 55),
 		Color("#7ee787")
 	)
 
 	draw_rect(
-		Rect2(858, 423, 39, 47),
+		Rect2(868, 303, 39, 47),
 		Color("#18202b")
 	)
 
 	draw_string(
 		ThemeDB.fallback_font,
-		Vector2(856, 405),
+		Vector2(866, 285),
 		"EXIT",
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
@@ -423,7 +515,7 @@ func _draw():
 	)
 
 	draw_circle(
-		Vector2(877, 435),
+		Vector2(887, 315),
 		8,
 		Color("#7ee787")
 	)
