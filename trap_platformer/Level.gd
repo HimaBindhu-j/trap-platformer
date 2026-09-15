@@ -1,5 +1,10 @@
 extends Node2D
 
+
+# =========================================================
+# PLATFORMS
+# =========================================================
+
 var platforms = [
 	Rect2(20, 470, 160, 30),
 	Rect2(220, 410, 120, 30),
@@ -9,6 +14,13 @@ var platforms = [
 	Rect2(820, 470, 120, 30)
 ]
 
+var platform_bodies: Array[StaticBody2D] = []
+
+
+# =========================================================
+# SPIKES
+# =========================================================
+
 var spikes = [
 	Vector2(185, 470),
 	Vector2(340, 410),
@@ -17,71 +29,105 @@ var spikes = [
 	Vector2(795, 470)
 ]
 
-# Platform bodies
-var platform_bodies: Array[StaticBody2D] = []
 
-# Horizontal moving trap
+# =========================================================
+# MOVING TRAP
+# =========================================================
+
 var moving_trap: Area2D
+
 var moving_trap_start_x := 610.0
 var moving_trap_range := 100.0
 var moving_trap_speed := 2.0
 var moving_trap_direction := 1.0
+
 var trap_activated := false
 
-# Disappearing platform
+
+# =========================================================
+# DISAPPEARING PLATFORM
+# =========================================================
+
 var disappearing_platform_index := 1
+
 var disappearing_trigger: Area2D
+
 var disappearing_platform_active := true
 
-# Exit
+
+# =========================================================
+# REAL EXIT
+# =========================================================
+
 var exit_area: Area2D
+
+var exit_position := Vector2(877, 445)
+
 var exit_enabled := false
 
 
+# =========================================================
+# FAKE EXIT
+# =========================================================
+
+var fake_exit_trigger: Area2D
+
+var fake_exit_used := false
+
+
+# =========================================================
+# READY
+# =========================================================
+
 func _ready():
 
-	# =========================
-	# Invisible trigger
-	# =========================
+	# -------------------------------------------------------
+	# MOVING TRAP TRIGGER
+	# -------------------------------------------------------
 
-	var trigger := preload("res://Trigger.gd").new()
+	var level_trigger = preload("res://Trigger.gd").new()
 
-	trigger.position = Vector2(300, 430)
+	level_trigger.setup(Vector2(100, 100))
+	level_trigger.position = Vector2(300, 430)
 
-	add_child(trigger)
+	add_child(level_trigger)
 
-	trigger.triggered.connect(_on_level_triggered)
+	level_trigger.triggered.connect(
+		_on_level_triggered
+	)
 
 
-	# =========================
-	# Create platforms
-	# =========================
+	# -------------------------------------------------------
+	# CREATE PLATFORMS
+	# -------------------------------------------------------
 
 	for i in range(platforms.size()):
 
 		var p = platforms[i]
 
 		var body := StaticBody2D.new()
-		var shape := CollisionShape2D.new()
-		var rect := RectangleShape2D.new()
+		var collision := CollisionShape2D.new()
+		var shape := RectangleShape2D.new()
 
-		rect.size = p.size
-		shape.shape = rect
+		shape.size = p.size
+		collision.shape = shape
 
 		body.position = p.position + p.size / 2.0
 
-		body.add_child(shape)
+		body.add_child(collision)
+
 		add_child(body)
 
 		platform_bodies.append(body)
 
 
-	# =========================
-	# Disappearing platform trigger
-	# =========================
+	# -------------------------------------------------------
+	# DISAPPEARING PLATFORM TRIGGER
+	# -------------------------------------------------------
 
 	disappearing_trigger = preload("res://Trigger.gd").new()
 
+	disappearing_trigger.setup(Vector2(100, 80))
 	disappearing_trigger.position = Vector2(280, 350)
 
 	add_child(disappearing_trigger)
@@ -91,44 +137,59 @@ func _ready():
 	)
 
 
-	# =========================
-	# Create spikes
-	# =========================
+	# -------------------------------------------------------
+	# CREATE SPIKES
+	# -------------------------------------------------------
 
-	for s in spikes:
+	for spike_position in spikes:
 
 		var spike := Area2D.new()
-		var shape := CollisionShape2D.new()
-		var rect := RectangleShape2D.new()
 
-		rect.size = Vector2(24, 25)
-		shape.shape = rect
+		var collision := CollisionShape2D.new()
+		var shape := RectangleShape2D.new()
 
-		spike.position = s + Vector2(12, -12)
+		shape.size = Vector2(24, 25)
+		collision.shape = shape
+
+		spike.position = spike_position + Vector2(12, -12)
+
 		spike.monitoring = true
+		spike.collision_layer = 2
+		spike.collision_mask = 1
 
-		spike.add_child(shape)
+		spike.add_child(collision)
+
 		add_child(spike)
 
-		spike.body_entered.connect(_on_spike_body_entered)
+		spike.body_entered.connect(
+			_on_spike_body_entered
+		)
 
 
-	# =========================
-	# Create horizontal moving trap
-	# =========================
+	# -------------------------------------------------------
+	# MOVING TRAP
+	# -------------------------------------------------------
 
 	moving_trap = Area2D.new()
 
-	var trap_shape := CollisionShape2D.new()
-	var trap_rect := RectangleShape2D.new()
+	var trap_collision := CollisionShape2D.new()
+	var trap_shape := RectangleShape2D.new()
 
-	trap_rect.size = Vector2(30, 30)
-	trap_shape.shape = trap_rect
+	trap_shape.size = Vector2(30, 30)
 
-	moving_trap.position = Vector2(moving_trap_start_x, 300)
+	trap_collision.shape = trap_shape
+
+	moving_trap.position = Vector2(
+		moving_trap_start_x,
+		300
+	)
+
 	moving_trap.monitoring = true
+	moving_trap.collision_layer = 2
+	moving_trap.collision_mask = 1
 
-	moving_trap.add_child(trap_shape)
+	moving_trap.add_child(trap_collision)
+
 	add_child(moving_trap)
 
 	moving_trap.body_entered.connect(
@@ -136,43 +197,75 @@ func _ready():
 	)
 
 
-	# =========================
-	# Create exit
-	# =========================
+	# -------------------------------------------------------
+	# REAL EXIT
+	# -------------------------------------------------------
 
 	exit_area = Area2D.new()
 
-	var exit_shape := CollisionShape2D.new()
-	var exit_rect := RectangleShape2D.new()
+	var exit_collision := CollisionShape2D.new()
+	var exit_shape := RectangleShape2D.new()
 
-	exit_rect.size = Vector2(45, 50)
-	exit_shape.shape = exit_rect
+	exit_shape.size = Vector2(45, 50)
 
-	exit_area.position = Vector2(877.5, 445)
+	exit_collision.shape = exit_shape
+
+	exit_area.position = exit_position
+
 	exit_area.monitoring = false
+	exit_area.collision_layer = 2
+	exit_area.collision_mask = 1
 
-	exit_area.add_child(exit_shape)
+	exit_area.add_child(exit_collision)
+
 	add_child(exit_area)
 
 	exit_area.body_entered.connect(
 		_on_exit_body_entered
 	)
 
+
+	# -------------------------------------------------------
+	# FAKE EXIT TRIGGER
+	# -------------------------------------------------------
+
+	fake_exit_trigger = preload("res://Trigger.gd").new()
+
+	# Bigger area so player doesn't have to touch exact point
+	fake_exit_trigger.setup(Vector2(120, 100))
+
+	# This is BEFORE the real exit
+	fake_exit_trigger.position = Vector2(810, 420)
+
+	add_child(fake_exit_trigger)
+
+	fake_exit_trigger.triggered.connect(
+		_on_fake_exit_triggered
+	)
+
+
 	queue_redraw()
 
 	call_deferred("_enable_exit")
 
 
+# =========================================================
+# PROCESS
+# =========================================================
+
 func _process(delta):
+
+	# -------------------------------------------------------
+	# MOVING TRAP
+	# -------------------------------------------------------
 
 	if moving_trap == null:
 		return
 
-	# Moving trap starts only after first trigger
 	if not trap_activated:
 		return
 
-	# Move trap left and right
+
 	moving_trap.position.x += (
 		moving_trap_direction
 		* moving_trap_speed
@@ -180,111 +273,174 @@ func _process(delta):
 		* delta
 	)
 
-	# Right limit
-	if moving_trap.position.x >= moving_trap_start_x + moving_trap_range:
+
+	if moving_trap.position.x >= (
+		moving_trap_start_x
+		+ moving_trap_range
+	):
 
 		moving_trap.position.x = (
-			moving_trap_start_x + moving_trap_range
+			moving_trap_start_x
+			+ moving_trap_range
 		)
 
 		moving_trap_direction = -1.0
 
-	# Left limit
+
 	elif moving_trap.position.x <= moving_trap_start_x:
 
 		moving_trap.position.x = moving_trap_start_x
+
 		moving_trap_direction = 1.0
+
 
 	queue_redraw()
 
+
+# =========================================================
+# ENABLE EXIT
+# =========================================================
 
 func _enable_exit():
 
 	await get_tree().create_timer(0.3).timeout
 
+	if not is_instance_valid(exit_area):
+		return
+
 	exit_enabled = true
-
-	if is_instance_valid(exit_area):
-		exit_area.monitoring = true
+	exit_area.monitoring = true
 
 
-# =========================
-# First invisible trigger
-# =========================
+# =========================================================
+# MOVING TRAP TRIGGER
+# =========================================================
 
 func _on_level_triggered(player):
 
-	print("INVISIBLE TRIGGER ACTIVATED!")
+	print("MOVING TRAP ACTIVATED!")
 
 	trap_activated = true
 
 
-# =========================
-# Disappearing platform trigger
-# =========================
+# =========================================================
+# DISAPPEARING PLATFORM
+# =========================================================
 
 func _on_disappearing_platform_triggered(player):
-
-	print("DISAPPEARING PLATFORM ACTIVATED!")
 
 	if not disappearing_platform_active:
 		return
 
 	disappearing_platform_active = false
 
+	print("DISAPPEARING PLATFORM ACTIVATED!")
+
+
 	await get_tree().create_timer(0.3).timeout
+
 
 	if disappearing_platform_index < platform_bodies.size():
 
-		var platform = platform_bodies[disappearing_platform_index]
+		var platform = platform_bodies[
+			disappearing_platform_index
+		]
 
 		if is_instance_valid(platform):
+
 			platform.queue_free()
+
 
 	queue_redraw()
 
 
-# =========================
-# Spike collision
-# =========================
+# =========================================================
+# FAKE EXIT
+# =========================================================
+
+func _on_fake_exit_triggered(player):
+
+	if fake_exit_used:
+		return
+
+	fake_exit_used = true
+
+	print("FAKE EXIT ACTIVATED!")
+
+	# Small delay so player sees the fake exit first
+	await get_tree().create_timer(0.25).timeout
+
+
+	# -------------------------------------------------------
+	# MOVE REAL EXIT
+	# -------------------------------------------------------
+
+	exit_position.x -= 150
+
+
+	if is_instance_valid(exit_area):
+
+		exit_area.position = exit_position
+
+
+	queue_redraw()
+
+	print("EXIT MOVED TO: ", exit_position)
+
+
+# =========================================================
+# SPIKE COLLISION
+# =========================================================
 
 func _on_spike_body_entered(body):
 
 	if body.name == "Player":
+
 		get_parent().kill_player()
 
 
-# =========================
-# Moving trap collision
-# =========================
+# =========================================================
+# MOVING TRAP COLLISION
+# =========================================================
 
 func _on_moving_trap_body_entered(body):
 
 	if body.name == "Player":
+
 		get_parent().kill_player()
 
 
-# =========================
-# Exit collision
-# =========================
+# =========================================================
+# EXIT COLLISION
+# =========================================================
 
 func _on_exit_body_entered(body):
 
-	if body.name == "Player" and exit_enabled:
-		get_parent().win_level()
+	if body.name != "Player":
+		return
+
+	if not exit_enabled:
+		return
+
+	print("REAL EXIT REACHED!")
+
+	get_parent().win_level()
 
 
-# =========================
-# Draw everything
-# =========================
+# =========================================================
+# DRAW
+# =========================================================
 
 func _draw():
 
-	# Platforms
+	# -------------------------------------------------------
+	# PLATFORMS
+	# -------------------------------------------------------
+
 	for i in range(platforms.size()):
 
-		# Don't draw disappearing platform after it disappears
 		if i == disappearing_platform_index:
+
 			if not disappearing_platform_active:
 				continue
 
@@ -303,22 +459,28 @@ func _draw():
 		)
 
 
-	# Spikes
-	for s in spikes:
+	# -------------------------------------------------------
+	# SPIKES
+	# -------------------------------------------------------
 
-		var pts = PackedVector2Array([
-			s,
-			s + Vector2(12, -25),
-			s + Vector2(24, 0)
+	for spike_position in spikes:
+
+		var points = PackedVector2Array([
+			spike_position,
+			spike_position + Vector2(12, -25),
+			spike_position + Vector2(24, 0)
 		])
 
 		draw_colored_polygon(
-			pts,
+			points,
 			Color("#ff4d6d")
 		)
 
 
-	# Horizontal moving trap
+	# -------------------------------------------------------
+	# MOVING TRAP
+	# -------------------------------------------------------
+
 	if moving_trap != null:
 
 		draw_rect(
@@ -330,29 +492,46 @@ func _draw():
 		)
 
 
-	# Exit
-	draw_rect(
-		Rect2(850, 415, 55, 55),
-		Color("#7ee787")
-	)
+	# -------------------------------------------------------
+	# REAL EXIT
+	# -------------------------------------------------------
 
-	draw_rect(
-		Rect2(858, 423, 39, 47),
-		Color("#18202b")
-	)
+	if exit_area != null:
 
-	draw_string(
-		ThemeDB.fallback_font,
-		Vector2(856, 405),
-		"EXIT",
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		20,
-		Color("#7ee787")
-	)
+		var pos = exit_area.position
 
-	draw_circle(
-		Vector2(877, 435),
-		8,
-		Color("#7ee787")
-	)
+		# Outer green door
+		draw_rect(
+			Rect2(
+				pos - Vector2(27.5, 30),
+				Vector2(55, 55)
+			),
+			Color("#7ee787")
+		)
+
+		# Inner dark door
+		draw_rect(
+			Rect2(
+				pos - Vector2(19.5, 22),
+				Vector2(39, 47)
+			),
+			Color("#18202b")
+		)
+
+		# EXIT text
+		draw_string(
+			ThemeDB.fallback_font,
+			pos + Vector2(-21, -30),
+			"EXIT",
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			20,
+			Color("#7ee787")
+		)
+
+		# Door light
+		draw_circle(
+			pos + Vector2(0, -10),
+			8,
+			Color("#7ee787")
+		)
