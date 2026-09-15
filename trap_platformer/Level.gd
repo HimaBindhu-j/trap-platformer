@@ -76,6 +76,15 @@ var fake_exit_used := false
 
 
 # =========================================================
+# REVERSE CONTROL ZONE
+# =========================================================
+
+var reverse_zone: Area2D
+
+var reverse_zone_active := false
+
+
+# =========================================================
 # READY
 # =========================================================
 
@@ -176,7 +185,6 @@ func _ready():
 	var trap_shape := RectangleShape2D.new()
 
 	trap_shape.size = Vector2(30, 30)
-
 	trap_collision.shape = trap_shape
 
 	moving_trap.position = Vector2(
@@ -207,7 +215,6 @@ func _ready():
 	var exit_shape := RectangleShape2D.new()
 
 	exit_shape.size = Vector2(45, 50)
-
 	exit_collision.shape = exit_shape
 
 	exit_area.position = exit_position
@@ -231,16 +238,47 @@ func _ready():
 
 	fake_exit_trigger = preload("res://Trigger.gd").new()
 
-	# Bigger area so player doesn't have to touch exact point
 	fake_exit_trigger.setup(Vector2(120, 100))
-
-	# This is BEFORE the real exit
 	fake_exit_trigger.position = Vector2(810, 420)
 
 	add_child(fake_exit_trigger)
 
 	fake_exit_trigger.triggered.connect(
 		_on_fake_exit_triggered
+	)
+
+
+	# =======================================================
+	# REVERSE CONTROL ZONE
+	# =======================================================
+
+	reverse_zone = Area2D.new()
+
+	var reverse_collision := CollisionShape2D.new()
+	var reverse_shape := RectangleShape2D.new()
+
+	# Wide enough for the player to clearly enter
+	reverse_shape.size = Vector2(150, 160)
+
+	reverse_collision.shape = reverse_shape
+
+	# Place reverse zone in the middle section
+	reverse_zone.position = Vector2(580, 380)
+
+	reverse_zone.monitoring = true
+	reverse_zone.collision_layer = 0
+	reverse_zone.collision_mask = 1
+
+	reverse_zone.add_child(reverse_collision)
+
+	add_child(reverse_zone)
+
+	reverse_zone.body_entered.connect(
+		_on_reverse_zone_entered
+	)
+
+	reverse_zone.body_exited.connect(
+		_on_reverse_zone_exited
 	)
 
 
@@ -255,16 +293,16 @@ func _ready():
 
 func _process(delta):
 
-	# -------------------------------------------------------
-	# MOVING TRAP
-	# -------------------------------------------------------
-
 	if moving_trap == null:
 		return
 
 	if not trap_activated:
 		return
 
+
+	# -------------------------------------------------------
+	# MOVE TRAP
+	# -------------------------------------------------------
 
 	moving_trap.position.x += (
 		moving_trap_direction
@@ -336,9 +374,7 @@ func _on_disappearing_platform_triggered(player):
 
 	print("DISAPPEARING PLATFORM ACTIVATED!")
 
-
 	await get_tree().create_timer(0.3).timeout
-
 
 	if disappearing_platform_index < platform_bodies.size():
 
@@ -347,9 +383,7 @@ func _on_disappearing_platform_triggered(player):
 		]
 
 		if is_instance_valid(platform):
-
 			platform.queue_free()
-
 
 	queue_redraw()
 
@@ -367,25 +401,55 @@ func _on_fake_exit_triggered(player):
 
 	print("FAKE EXIT ACTIVATED!")
 
-	# Small delay so player sees the fake exit first
 	await get_tree().create_timer(0.25).timeout
 
-
-	# -------------------------------------------------------
-	# MOVE REAL EXIT
-	# -------------------------------------------------------
-
 	exit_position.x -= 150
-
 
 	if is_instance_valid(exit_area):
 
 		exit_area.position = exit_position
 
-
 	queue_redraw()
 
 	print("EXIT MOVED TO: ", exit_position)
+
+
+# =========================================================
+# REVERSE CONTROL ENTER
+# =========================================================
+
+func _on_reverse_zone_entered(body):
+
+	if body.name != "Player":
+		return
+
+	if reverse_zone_active:
+		return
+
+	reverse_zone_active = true
+
+	body.set_reverse_controls(true)
+
+	print("🔄 REVERSE CONTROLS ON")
+
+
+# =========================================================
+# REVERSE CONTROL EXIT
+# =========================================================
+
+func _on_reverse_zone_exited(body):
+
+	if body.name != "Player":
+		return
+
+	if not reverse_zone_active:
+		return
+
+	reverse_zone_active = false
+
+	body.set_reverse_controls(false)
+
+	print("🔄 REVERSE CONTROLS OFF")
 
 
 # =========================================================
@@ -493,6 +557,35 @@ func _draw():
 
 
 	# -------------------------------------------------------
+	# REVERSE ZONE VISUAL
+	# -------------------------------------------------------
+	# Very faint visual so we can test the zone.
+	# Remove later when everything works.
+
+	if reverse_zone != null:
+
+		var zone_rect = Rect2(
+			reverse_zone.position - Vector2(75, 80),
+			Vector2(150, 160)
+		)
+
+		draw_rect(
+			zone_rect,
+			Color(0.4, 0.2, 0.8, 0.12)
+		)
+
+		draw_string(
+			ThemeDB.fallback_font,
+			reverse_zone.position + Vector2(-55, 5),
+			"REVERSE",
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			18,
+			Color("#c084fc")
+		)
+
+
+	# -------------------------------------------------------
 	# REAL EXIT
 	# -------------------------------------------------------
 
@@ -500,7 +593,6 @@ func _draw():
 
 		var pos = exit_area.position
 
-		# Outer green door
 		draw_rect(
 			Rect2(
 				pos - Vector2(27.5, 30),
@@ -509,7 +601,6 @@ func _draw():
 			Color("#7ee787")
 		)
 
-		# Inner dark door
 		draw_rect(
 			Rect2(
 				pos - Vector2(19.5, 22),
@@ -518,7 +609,6 @@ func _draw():
 			Color("#18202b")
 		)
 
-		# EXIT text
 		draw_string(
 			ThemeDB.fallback_font,
 			pos + Vector2(-21, -30),
@@ -529,7 +619,6 @@ func _draw():
 			Color("#7ee787")
 		)
 
-		# Door light
 		draw_circle(
 			pos + Vector2(0, -10),
 			8,
