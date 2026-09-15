@@ -23,6 +23,7 @@ var moving_trap_start_x := 610.0
 var moving_trap_range := 100.0
 var moving_trap_speed := 2.0
 var moving_trap_direction := 1.0
+var trap_activated := false
 
 var exit_area: Area2D
 var exit_enabled := false
@@ -116,6 +117,9 @@ func _process(delta):
 	if moving_trap == null:
 		return
 
+	if not trap_activated:
+		return
+
 	# Move trap left and right
 	moving_trap.position.x += (
 		moving_trap_direction
@@ -150,6 +154,7 @@ func _enable_exit():
 func _on_level_triggered(player):
 
 	print("INVISIBLE TRIGGER ACTIVATED!")
+	trap_activated = true
 
 
 func _on_spike_body_entered(body):
