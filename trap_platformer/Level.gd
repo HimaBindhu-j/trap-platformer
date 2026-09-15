@@ -17,6 +17,9 @@ var spikes = [
 	Vector2(795, 470)
 ]
 
+# Platform bodies
+var platform_bodies: Array[StaticBody2D] = []
+
 # Horizontal moving trap
 var moving_trap: Area2D
 var moving_trap_start_x := 610.0
@@ -25,13 +28,22 @@ var moving_trap_speed := 2.0
 var moving_trap_direction := 1.0
 var trap_activated := false
 
+# Disappearing platform
+var disappearing_platform_index := 1
+var disappearing_trigger: Area2D
+var disappearing_platform_active := true
+
+# Exit
 var exit_area: Area2D
 var exit_enabled := false
 
 
 func _ready():
 
-	# Create invisible trigger
+	# =========================
+	# Invisible trigger
+	# =========================
+
 	var trigger := preload("res://Trigger.gd").new()
 
 	trigger.position = Vector2(300, 430)
@@ -41,28 +53,57 @@ func _ready():
 	trigger.triggered.connect(_on_level_triggered)
 
 
+	# =========================
 	# Create platforms
-	for p in platforms:
+	# =========================
+
+	for i in range(platforms.size()):
+
+		var p = platforms[i]
+
 		var body := StaticBody2D.new()
 		var shape := CollisionShape2D.new()
 		var rect := RectangleShape2D.new()
 
 		rect.size = p.size
 		shape.shape = rect
+
 		body.position = p.position + p.size / 2.0
 
 		body.add_child(shape)
 		add_child(body)
 
+		platform_bodies.append(body)
 
+
+	# =========================
+	# Disappearing platform trigger
+	# =========================
+
+	disappearing_trigger = preload("res://Trigger.gd").new()
+
+	disappearing_trigger.position = Vector2(280, 350)
+
+	add_child(disappearing_trigger)
+
+	disappearing_trigger.triggered.connect(
+		_on_disappearing_platform_triggered
+	)
+
+
+	# =========================
 	# Create spikes
+	# =========================
+
 	for s in spikes:
+
 		var spike := Area2D.new()
 		var shape := CollisionShape2D.new()
 		var rect := RectangleShape2D.new()
 
 		rect.size = Vector2(24, 25)
 		shape.shape = rect
+
 		spike.position = s + Vector2(12, -12)
 		spike.monitoring = true
 
@@ -72,7 +113,10 @@ func _ready():
 		spike.body_entered.connect(_on_spike_body_entered)
 
 
+	# =========================
 	# Create horizontal moving trap
+	# =========================
+
 	moving_trap = Area2D.new()
 
 	var trap_shape := CollisionShape2D.new()
@@ -87,10 +131,15 @@ func _ready():
 	moving_trap.add_child(trap_shape)
 	add_child(moving_trap)
 
-	moving_trap.body_entered.connect(_on_moving_trap_body_entered)
+	moving_trap.body_entered.connect(
+		_on_moving_trap_body_entered
+	)
 
 
+	# =========================
 	# Create exit
+	# =========================
+
 	exit_area = Area2D.new()
 
 	var exit_shape := CollisionShape2D.new()
@@ -105,7 +154,9 @@ func _ready():
 	exit_area.add_child(exit_shape)
 	add_child(exit_area)
 
-	exit_area.body_entered.connect(_on_exit_body_entered)
+	exit_area.body_entered.connect(
+		_on_exit_body_entered
+	)
 
 	queue_redraw()
 
@@ -117,6 +168,7 @@ func _process(delta):
 	if moving_trap == null:
 		return
 
+	# Moving trap starts only after first trigger
 	if not trap_activated:
 		return
 
@@ -130,11 +182,16 @@ func _process(delta):
 
 	# Right limit
 	if moving_trap.position.x >= moving_trap_start_x + moving_trap_range:
-		moving_trap.position.x = moving_trap_start_x + moving_trap_range
+
+		moving_trap.position.x = (
+			moving_trap_start_x + moving_trap_range
+		)
+
 		moving_trap_direction = -1.0
 
 	# Left limit
 	elif moving_trap.position.x <= moving_trap_start_x:
+
 		moving_trap.position.x = moving_trap_start_x
 		moving_trap_direction = 1.0
 
@@ -151,11 +208,45 @@ func _enable_exit():
 		exit_area.monitoring = true
 
 
+# =========================
+# First invisible trigger
+# =========================
+
 func _on_level_triggered(player):
 
 	print("INVISIBLE TRIGGER ACTIVATED!")
+
 	trap_activated = true
 
+
+# =========================
+# Disappearing platform trigger
+# =========================
+
+func _on_disappearing_platform_triggered(player):
+
+	print("DISAPPEARING PLATFORM ACTIVATED!")
+
+	if not disappearing_platform_active:
+		return
+
+	disappearing_platform_active = false
+
+	await get_tree().create_timer(0.3).timeout
+
+	if disappearing_platform_index < platform_bodies.size():
+
+		var platform = platform_bodies[disappearing_platform_index]
+
+		if is_instance_valid(platform):
+			platform.queue_free()
+
+	queue_redraw()
+
+
+# =========================
+# Spike collision
+# =========================
 
 func _on_spike_body_entered(body):
 
@@ -163,11 +254,19 @@ func _on_spike_body_entered(body):
 		get_parent().kill_player()
 
 
+# =========================
+# Moving trap collision
+# =========================
+
 func _on_moving_trap_body_entered(body):
 
 	if body.name == "Player":
 		get_parent().kill_player()
 
+
+# =========================
+# Exit collision
+# =========================
 
 func _on_exit_body_entered(body):
 
@@ -175,10 +274,22 @@ func _on_exit_body_entered(body):
 		get_parent().win_level()
 
 
+# =========================
+# Draw everything
+# =========================
+
 func _draw():
 
 	# Platforms
-	for p in platforms:
+	for i in range(platforms.size()):
+
+		# Don't draw disappearing platform after it disappears
+		if i == disappearing_platform_index:
+			if not disappearing_platform_active:
+				continue
+
+		var p = platforms[i]
+
 		draw_rect(
 			p,
 			Color("#52606d")
@@ -194,6 +305,7 @@ func _draw():
 
 	# Spikes
 	for s in spikes:
+
 		var pts = PackedVector2Array([
 			s,
 			s + Vector2(12, -25),
@@ -208,6 +320,7 @@ func _draw():
 
 	# Horizontal moving trap
 	if moving_trap != null:
+
 		draw_rect(
 			Rect2(
 				moving_trap.position - Vector2(15, 15),
