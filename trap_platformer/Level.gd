@@ -29,6 +29,17 @@ var exit_enabled := false
 
 
 func _ready():
+
+	# Create invisible trigger
+	var trigger := preload("res://Trigger.gd").new()
+
+	trigger.position = Vector2(300, 430)
+
+	add_child(trigger)
+
+	trigger.triggered.connect(_on_level_triggered)
+
+
 	# Create platforms
 	for p in platforms:
 		var body := StaticBody2D.new()
@@ -41,6 +52,7 @@ func _ready():
 
 		body.add_child(shape)
 		add_child(body)
+
 
 	# Create spikes
 	for s in spikes:
@@ -58,6 +70,7 @@ func _ready():
 
 		spike.body_entered.connect(_on_spike_body_entered)
 
+
 	# Create horizontal moving trap
 	moving_trap = Area2D.new()
 
@@ -74,6 +87,7 @@ func _ready():
 	add_child(moving_trap)
 
 	moving_trap.body_entered.connect(_on_moving_trap_body_entered)
+
 
 	# Create exit
 	exit_area = Area2D.new()
@@ -98,6 +112,7 @@ func _ready():
 
 
 func _process(delta):
+
 	if moving_trap == null:
 		return
 
@@ -123,6 +138,7 @@ func _process(delta):
 
 
 func _enable_exit():
+
 	await get_tree().create_timer(0.3).timeout
 
 	exit_enabled = true
@@ -131,22 +147,31 @@ func _enable_exit():
 		exit_area.monitoring = true
 
 
+func _on_level_triggered(player):
+
+	print("INVISIBLE TRIGGER ACTIVATED!")
+
+
 func _on_spike_body_entered(body):
+
 	if body.name == "Player":
 		get_parent().kill_player()
 
 
 func _on_moving_trap_body_entered(body):
+
 	if body.name == "Player":
 		get_parent().kill_player()
 
 
 func _on_exit_body_entered(body):
+
 	if body.name == "Player" and exit_enabled:
 		get_parent().win_level()
 
 
 func _draw():
+
 	# Platforms
 	for p in platforms:
 		draw_rect(
@@ -161,10 +186,11 @@ func _draw():
 			3
 		)
 
+
 	# Spikes
 	for s in spikes:
 		var pts = PackedVector2Array([
-			s + Vector2(0, 0),
+			s,
 			s + Vector2(12, -25),
 			s + Vector2(24, 0)
 		])
@@ -173,6 +199,7 @@ func _draw():
 			pts,
 			Color("#ff4d6d")
 		)
+
 
 	# Horizontal moving trap
 	if moving_trap != null:
@@ -183,6 +210,7 @@ func _draw():
 			),
 			Color("#ff9f43")
 		)
+
 
 	# Exit
 	draw_rect(
